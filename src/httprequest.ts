@@ -29,8 +29,9 @@ export async function sendErrorToChatGPT(errorText: string) {
     console.log("Response Status Code:", response.status);
     
     console.log(responseData);
-    return response.status
+    return response.status.toString();
   } catch (error) {
     console.error("API request to ChatGPT failed:", error);
+    return "error";
   }
 }
