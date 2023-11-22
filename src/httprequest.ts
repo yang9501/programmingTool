@@ -12,7 +12,7 @@ export async function sendErrorToChatGPT(errorText: string) {
   });
   console.log(chatCompletion);
   let gptContent = chatCompletion.choices[0].message.content;
-  if (gptContent == null) {
+  if (gptContent === null) {
     return "unmodified";
   }
   return gptContent.toString();

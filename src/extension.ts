@@ -13,7 +13,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	vscode.commands.registerCommand('extension.fixSyntaxError', async (lineNumber: number) => {
 		let editor = vscode.window.activeTextEditor;
 		if (editor) {
-			let lineOfCode = editor.document.lineAt(lineNumber)
+			let lineOfCode = editor.document.lineAt(lineNumber);
 			let lineOfCodeText = lineOfCode.text;
 			// The user has right clicked a highlighted syntax error on this line
 			//Ensures that the diagnostics are on the same line as the cursor, therefore only one reference is needed
@@ -26,7 +26,8 @@ export async function activate(context: vscode.ExtensionContext) {
 				// Replace the line of code with the GPT-3 assisted fix
 				let gptAssistedReturnString = await sendErrorToChatGPT(lineOfCodeText);
 				let range = lineOfCode.range;
-				let indentation = lineOfCodeText.match(/^\s*/)[0];
+				let match = lineOfCodeText.match(/^\s*/);
+				let indentation = match ? match[0] : "";
 				if (gptAssistedReturnString !== "unmodified") {
 					editor.edit(editBuilder => {
 						editBuilder.replace(range, indentation + gptAssistedReturnString);
