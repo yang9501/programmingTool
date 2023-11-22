@@ -1,15 +1,40 @@
 import * as vscode from 'vscode';
 import { sendErrorToChatGPT } from "./httprequest";
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
-	console.log('Congratulations, your extension "helloworld" is now active!');
+	console.log('Congratulations, your extension "programmingtool" is now active!');
 
-    context.subscriptions.push(vscode.languages.registerCodeActionsProvider('java', new assistedAIFixCodeActionProvider()));
-	context.subscriptions.push(vscode.languages.registerCodeActionsProvider('java', new googleSearchCodeActionProvider()));
+    context.subscriptions.push(vscode.languages.registerCodeActionsProvider('*', new AssistedAIFixCodeActionProvider()));
+	context.subscriptions.push(vscode.languages.registerCodeActionsProvider('*', new GoogleSearchCodeActionProvider()));
+
+
+	// This part partially written by Copilot
+	vscode.commands.registerCommand('extension.fixSyntaxError', async (lineNumber: number) => {
+		let editor = vscode.window.activeTextEditor;
+		if (editor) {
+			let lineOfCode = editor.document.lineAt(lineNumber).text;
+			// The user has right clicked a highlighted syntax error on this line
+			//Ensures that the diagnostics are on the same line as the cursor, therefore only one reference is needed
+			let diagnostics = vscode.languages.getDiagnostics(editor.document.uri).filter(diagnostic => diagnostic.severity === vscode.DiagnosticSeverity.Error && diagnostic.range.start.line === lineNumber);
+			console.log(diagnostics);
+			//Crucial check
+			if (diagnostics.length > 0) {
+				// Display the line of code
+				vscode.window.showInformationMessage('Fixing syntax error: ' + diagnostics[0].message);
+				// Replace the line of code with the GPT-3 assisted fix
+				let gptAssistedReturnString = await sendErrorToChatGPT(lineOfCode);
+				if (gptAssistedReturnString !== "unmodified") {
+					editor.edit(editBuilder => {
+						editBuilder.replace(diagnostics[0].range, gptAssistedReturnString);
+					});
+				}
+			}
+		}
+	});
 }
 
-export class googleSearchCodeActionProvider implements vscode.CodeActionProvider {
+export class GoogleSearchCodeActionProvider implements vscode.CodeActionProvider {
 	
 	public static readonly providedCodeActionKinds = [
 		vscode.CodeActionKind.QuickFix
@@ -47,7 +72,7 @@ export class googleSearchCodeActionProvider implements vscode.CodeActionProvider
     }
 }
 
-export class assistedAIFixCodeActionProvider implements vscode.CodeActionProvider {
+export class AssistedAIFixCodeActionProvider implements vscode.CodeActionProvider {
 	public static readonly providedCodeActionKinds = [
 		vscode.CodeActionKind.QuickFix
 	];
@@ -65,15 +90,13 @@ export class assistedAIFixCodeActionProvider implements vscode.CodeActionProvide
 			console.log(diagnostics);
 			//Crucial check
 			if (diagnostics.length > 0) {
-				let gptAssistedReturnString: string = "unmodified";
-				const gptAssistedReturnStringPromise = sendErrorToChatGPT(lineOfCode);
-				//Waits for response to be returned from http query.  What happens if it takes too long?  Add a timeout?
-				gptAssistedReturnString = await gptAssistedReturnStringPromise || gptAssistedReturnString;
-
 				let codeAction = new vscode.CodeAction('Fix syntax error: ' + diagnostics[0].message, vscode.CodeActionKind.QuickFix);
-				codeAction.edit = new vscode.WorkspaceEdit();
-				//If multiple errors exist on the same line, then looping through the diagnostics would result in multiple Quick Action entries
-				codeAction.edit.replace(document.uri, diagnostics[0].range, gptAssistedReturnString + '/* Fix your syntax error here */' + lineOfCode);
+				codeAction.command = {
+					title: 'Fix syntax error',
+					command: 'extension.fixSyntaxError',
+					arguments: [lineNumber]
+				};
+				
 				codeActions.push(codeAction);
 			}
 		}

@@ -1,37 +1,14 @@
-import fetch from "node-fetch";
+import OpenAI from "openai";
 
 export async function sendErrorToChatGPT(errorText: string) {
-  const chatGptApiUrl = "https://enellv1ir26mm.x.pipedream.net"; 
-  //const apiKey = ""; 
+  const openai = new OpenAI({
+    apiKey: "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", // TODO: Add API key here
+  });
 
-  const requestData = {
-    text: errorText,
-  };
+  const chatCompletion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: "Fix this code:\n" + errorText}],
+    model: "gpt-3.5-turbo",
+  });
 
-  const requestOptions = {
-    method: "POST",
-    // headers: {
-    //   "Content-Type": "application/json",
-    //   Authorization: `Bearer ${apiKey}`,
-    // },
-    body: JSON.stringify(requestData),
-  };
-
-  try {
-    const response = await fetch(chatGptApiUrl, requestOptions);
-
-    if (!response.ok) {
-       
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const responseData = await response.json();
-    console.log("Response Status Code:", response.status);
-    
-    console.log(responseData);
-    return response.status.toString();
-  } catch (error) {
-    console.error("API request to ChatGPT failed:", error);
-    return "error";
-  }
+  return chatCompletion.choices[0].message.toString();
 }
