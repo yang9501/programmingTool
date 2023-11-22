@@ -13,7 +13,18 @@
     "*"
   ],
   "main": "./out/extension.js",
-  "contributes": {},
+  "contributes": {
+    "configuration":{
+      "title": "programmingtool settings",
+      "properties": {
+        "programmingtool.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key"
+        }
+      }
+    }
+  },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",

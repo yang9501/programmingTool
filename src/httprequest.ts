@@ -1,8 +1,9 @@
 import OpenAI from "openai";
+import * as vscode from 'vscode';
 
 export async function sendErrorToChatGPT(errorText: string) {
   const openai = new OpenAI({
-    apiKey: "", // TODO: Add API key here
+    apiKey: vscode.workspace.getConfiguration("programmingtool").get("apiKey"),
   });
   console.log("errorText = " + errorText);
   const chatCompletion = await openai.chat.completions.create({
