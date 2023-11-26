@@ -1,37 +1,32 @@
-import fetch from "node-fetch";
+import OpenAI from "openai";
+import * as vscode from 'vscode';
 
 export async function sendErrorToChatGPT(errorText: string) {
-  const chatGptApiUrl = "https://enellv1ir26mm.x.pipedream.net"; 
-  //const apiKey = ""; 
-
-  const requestData = {
-    text: errorText,
-  };
-
-  const requestOptions = {
-    method: "POST",
-    // headers: {
-    //   "Content-Type": "application/json",
-    //   Authorization: `Bearer ${apiKey}`,
-    // },
-    body: JSON.stringify(requestData),
-  };
-
-  try {
-    const response = await fetch(chatGptApiUrl, requestOptions);
-
-    if (!response.ok) {
-       
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const responseData = await response.json();
-    console.log("Response Status Code:", response.status);
-    
-    console.log(responseData);
-    return response.status.toString();
-  } catch (error) {
-    console.error("API request to ChatGPT failed:", error);
-    return "error";
+  const openai = new OpenAI({
+    apiKey: vscode.workspace.getConfiguration("programmingtool").get("apiKey"),
+  });
+  const chatCompletion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: "Fix this code and return proper code:\n" + errorText}],
+    model: "gpt-3.5-turbo",
+  });
+  let gptContent = chatCompletion.choices[0].message.content;
+  if (gptContent === null) {
+    return "unmodified";
   }
+  return gptContent.toString();
+}
+
+export async function getQueryFromChatGPT(errorMessage: string, errorSnippet: string) {
+  const openai = new OpenAI({
+    apiKey: vscode.workspace.getConfiguration("programmingtool").get("apiKey"),
+  });
+  const chatCompletion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: "Only give me a good search engine query without quotes to solve this error message and corresponding code snippet with error:\n" + errorMessage + errorSnippet}],
+    model: "gpt-3.5-turbo",
+  });
+  let gptContent = chatCompletion.choices[0].message.content;
+  if (gptContent === null) {
+    return "unmodified";
+  }
+  return gptContent.toString();
 }
