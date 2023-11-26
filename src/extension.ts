@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { sendErrorToChatGPT } from "./httprequest";
+import { getQueryFromChatGPT } from "./httprequest";
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -18,7 +19,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			// The user has right clicked a highlighted syntax error on this line
 			//Ensures that the diagnostics are on the same line as the cursor, therefore only one reference is needed
 			let diagnostics = vscode.languages.getDiagnostics(editor.document.uri).filter(diagnostic => diagnostic.severity === vscode.DiagnosticSeverity.Error && diagnostic.range.start.line === lineNumber);
-			console.log(diagnostics);
 			//Crucial check
 			if (diagnostics.length > 0) {
 				// Display the line of code
@@ -36,6 +36,27 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		}
 	});
+
+	vscode.commands.registerCommand('extension.retrieveSearchQuery', async (lineNumber: number) => {
+		let editor = vscode.window.activeTextEditor;
+		if (editor) {
+			let lineOfCode = editor.document.lineAt(lineNumber);
+			let lineOfCodeText = lineOfCode.text;
+			// The user has right clicked a highlighted syntax error on this line
+			//Ensures that the diagnostics are on the same line as the cursor, therefore only one reference is needed
+			let diagnostics = vscode.languages.getDiagnostics(editor.document.uri).filter(diagnostic => diagnostic.severity === vscode.DiagnosticSeverity.Error && diagnostic.range.start.line === lineNumber);
+			//Crucial check
+			if (diagnostics.length > 0) {
+				// Display the line of code
+				vscode.window.showInformationMessage('Retrieving search query: ' + diagnostics[0].message);
+				// Replace the line of code with the GPT-3 assisted fix
+				let gptAssistedReturnString = await getQueryFromChatGPT(diagnostics[0].message, lineOfCodeText);
+				let text = encodeURI(gptAssistedReturnString);
+				let url = "https://www.google.com/search?q=" + text;
+				vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(url));
+			}
+		}
+	});
 }
 
 export class GoogleSearchCodeActionProvider implements vscode.CodeActionProvider {
@@ -48,27 +69,22 @@ export class GoogleSearchCodeActionProvider implements vscode.CodeActionProvider
 		let codeActions: vscode.CodeAction[] = [];
 		let editor = vscode.window.activeTextEditor;
 		if (editor) {
-			console.log("hello");
 			let selection = editor.selection.active;
 			let lineNumber = selection.line;
-			console.log("lineNumber = " + lineNumber);
-			let lineOfCode = editor.document.lineAt(lineNumber).text;
+			let lineOfCodeText = editor.document.lineAt(lineNumber).text;
 			// The user has right clicked a highlighted syntax error on this line
 			//Ensures that the diagnostics are on the same line as the cursor, therefore only one reference is needed
 			let diagnostics = context.diagnostics.filter(diagnostic => diagnostic.severity === vscode.DiagnosticSeverity.Error && diagnostic.range.start.line === lineNumber);
-			console.log(diagnostics);
 			//Crucial check
 			if (diagnostics.length > 0) {
 				// Display the line of code
 				let codeAction = new vscode.CodeAction('Search for error fix: ' + diagnostics[0].message, vscode.CodeActionKind.QuickFix);
-				
-				let text = encodeURI(lineOfCode);
-				let query = "https://www.google.com/search?q=" + text;
 				codeAction.command = {
-					title: 'Search for error fix',
-					command: 'vscode.open', // The command ID
-					arguments: [vscode.Uri.parse(query)] // The arguments to pass to the command handler
+					title: 'Retrieve search query',
+					command: 'extension.retrieveSearchQuery',
+					arguments: [lineNumber]
 				};
+				
 				codeActions.push(codeAction);
 			}
 		}
@@ -87,11 +103,9 @@ export class AssistedAIFixCodeActionProvider implements vscode.CodeActionProvide
 		if (editor) {
 			let selection = editor.selection.active;
 			let lineNumber = selection.line;
-			let lineOfCode = editor.document.lineAt(lineNumber).text;
 			// The user has right clicked a highlighted syntax error on this line
 			//Ensures that the diagnostics are on the same line as the cursor, therefore only one reference is needed
 			let diagnostics = context.diagnostics.filter(diagnostic => diagnostic.severity === vscode.DiagnosticSeverity.Error && diagnostic.range.start.line === lineNumber);
-			console.log(diagnostics);
 			//Crucial check
 			if (diagnostics.length > 0) {
 				let codeAction = new vscode.CodeAction('Fix syntax error: ' + diagnostics[0].message, vscode.CodeActionKind.QuickFix);
