@@ -6,7 +6,7 @@ export async function sendErrorToChatGPT(errorText: string) {
     apiKey: vscode.workspace.getConfiguration("programmingtool").get("apiKey"),
   });
   const chatCompletion = await openai.chat.completions.create({
-    messages: [{ role: "user", content: "Fix this code and return proper code:\n" + errorText}],
+    messages: [{ role: "user", content: "Fix this code and return proper code:\n\n" + errorText + "\n\nDo not give any preamble or explanation, and do not surround the code with any quotes."}],
     model: "gpt-3.5-turbo",
   });
   let gptContent = chatCompletion.choices[0].message.content;
